@@ -1,19 +1,29 @@
 from os import listdir, path, mkdir, remove
 from datetime import datetime, timedelta, timezone
 
+from time import sleep
+import threading
 from proton_photo_library import *
 from mac_photo_library import *
 
 # use 0 days ago for infinite sync
 SETTINGS = {
     "location": "test",
-    "days_ago": 2
+    "days_ago": 5
 }
 
 proton = ProtonPhotoLibrary(SETTINGS["location"])
 mac = MacPhotoLibrary(SETTINGS["location"])
 uuid_map_path = path.join(SETTINGS["location"], "uuid_map.json")
 temp_path = path.join(SETTINGS["location"], ".temp")
+
+def save_to_mac(photo, filename):
+    print("Adding photo...")
+    mac_uuid = mac.add_photo(path.join(temp_path, filename))
+    uuid_map[photo["nodeUid"]] = mac_uuid
+    remove(path.join(temp_path, filename))
+
+    print("Done.")
 
 def download_proton(timeline):
     print("Photos on Proton Drive:", len(timeline))
@@ -39,20 +49,23 @@ def download_proton(timeline):
             remove(path.join(temp_path, item))
 
     n = 0
+    mac_thread = None
     for photo in download_queue:
         n += 1
         print("Downloading photo", n, "of", len(download_queue))
         proton.download_photo(photo["nodeUid"], temp_path)
         filename = listdir(temp_path)[0]
-        print("Adding photo")
-        mac.add_photo(path.join(temp_path, filename))
-        print("Mapping")
-        uuid_map[photo["nodeUid"]] = mac.get_photo(filename)[0]["uuid"]
-        remove(path.join(temp_path, filename))
+
+        if mac_thread != None:
+            while mac_thread.is_alive():
+                print("Waiting for prev. photo to be imported.")
+                sleep(1)
+                
+        mac_thread = threading.Thread(target=save_to_mac, args=(photo, filename,))
+        mac_thread.start()
 
     with open(uuid_map_path, "w") as u:
         u.write(json.dumps(uuid_map))
-
     print("Finished.")
 
 print("Reading Proton Photos...")

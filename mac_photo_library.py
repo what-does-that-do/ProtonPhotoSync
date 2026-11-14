@@ -18,9 +18,20 @@ class MacPhotoLibrary:
         )
         return json.loads(result.stdout)
 
-    def add_photo(self, path: str):
+    def add_photo(self, path: str, return_uuid: bool = True) -> str:
+        """Adds a photo to Apple Photo library.
+
+        Args:
+            path (str): Filepath of the photo.
+            return_uuid (bool, optional): Whether to return UUID or not.
+
+        Returns:
+            str: UUID created for the photo
+        """
         subprocess.run(
             ["osxphotos", "import", path, "--library", self.library],
             capture_output=True,
             check=True
         )
+        return self.get_photo(path.split("/")[-1])[0]["uuid"]
+        
