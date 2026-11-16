@@ -13,8 +13,28 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-with open("settings.json", "r") as s:
-    SETTINGS = json.loads(s.read())
+if "settings.json" not in listdir():
+    SETTINGS = {}
+
+    print("-> Welcome to Proton Photo sync!")
+    print("[?] Please enter the path to your new Apple Photo Library directory.")
+    SETTINGS["location"] = input()
+
+    print("[?] How many days do you want to sync locally to your computer? Enter 0 for infinite.")
+    SETTINGS["days_ago"] = int(input())
+
+    print("[?] What sync interval mins should be used? Default is 2 mins.")
+    d = input()
+    if d != "" and d != "0":
+        SETTINGS["sync_timeout_mins"] = int(d)
+    else:
+        SETTINGS["sync_timeout_mins"] = 2
+
+    with open("settings.json", "w") as s:
+        s.write(json.dumps(SETTINGS))
+else:
+    with open("settings.json", "r") as s:
+        SETTINGS = json.loads(s.read())
 
 uuid_map_path = path.join(SETTINGS["location"], "uuid_map.json")
 temp_path = path.join(SETTINGS["location"], ".temp")
@@ -50,7 +70,7 @@ while True:
     logging.info("Reading Proton Photos...")
     proton_library = proton.get_timeline(total_days_ago=SETTINGS["days_ago"])
     logging.info(
-        "Discovered %s photos after %s days ago.",
+        "Discovered %s photos after %s days ago on Proton Drive.",
         len(proton_library),
         SETTINGS["days_ago"],
     )

@@ -19,12 +19,27 @@ class ProtonPhotoLibrary:
     def authenticate(self):
         command = ["proton-drive", "auth", "login"]
         logging.debug("%s", command)
-        result = subprocess.run(
+        process = subprocess.Popen(
             command,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            check=True
+            bufsize=1
         )
+
+        # UUID must be read from the verbose logs.
+        # Read stdout verbose line by line as the process runs
+        uuid = None
+        for line in process.stdout:
+            print(line)
+        
+        process.wait()
+        
+        if process.returncode != 0:
+            raise RuntimeError(f"Proton Drive upload failed with code {process.returncode}")
+
+        logging.info("Login successful.")
+        return uuid
 
     def get_timeline(self, total_days_ago: int = 0):
         command = ["proton-drive", "photo", "timeline", "-j"]
