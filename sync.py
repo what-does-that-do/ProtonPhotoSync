@@ -10,7 +10,7 @@ from mac_photo_library import MacPhotoLibrary
 from win_photo_library import WinPhotoLibrary
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="[%(asctime)s] [%(levelname)s] - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
@@ -122,13 +122,23 @@ while True:
         else:
             # On Proton, not in the map (never seen before)
             # DOWNLOAD from proton
-            logging.info("Downloading photo %s", proton_photo)
-            proton.download_photo(proton_photo)
+            try:
+                logging.info("Downloading photo %s", proton_photo)
+                proton.download_photo(proton_photo)
+            except Exception as e:
+                logging.error("Proton crash! Error downloading photo: %s failed with error: %s", proton_photo, str(e))
+                continue
 
             filename = listdir(temp_path)[0]
             
             logging.info("Adding photo %s to local library.", filename)
-            local_uuid = local.add_photo(path.join(temp_path, filename))
+            if filename in local.filenames:
+                logging.warning("Filename already exists in library. Skipping import.")
+
+                # find uuid of photo duplicate
+                local_uuid = local.search_filename(filename)[0]["uuid"]
+            else:
+                local_uuid = local.add_photo(path.join(temp_path, filename))
             
             uuid_map[proton_photo] = local_uuid
             remove(path.join(temp_path, filename))
@@ -176,16 +186,19 @@ while True:
             export_db = path.join(temp_path, ".osxphotos_export.db")
             if path.exists(export_db):
                 remove(export_db)
+            
+            try:
+                # upload this to proton
+                filename = listdir(temp_path)[0]
+                proton_uuid = proton.upload_photo(path.join(temp_path, filename))
 
-            # upload this to proton
-            filename = listdir(temp_path)[0]
-            proton_uuid = proton.upload_photo(path.join(temp_path, filename))
+                if not proton_uuid:
+                    logging.error("Error uploading photo: %s", mac_photo)
+                    continue
 
-            if not proton_uuid:
-                logging.error("Error uploading photo: %s", mac_photo)
-                continue
-
-            uuid_map[proton_uuid] = mac_photo
+                uuid_map[proton_uuid] = mac_photo
+            except Exception as e:
+                logging.error("Upload error! Error uploading photo: %s failed with error: %s", mac_photo, str(e))
 
             # clear the temp folder
             for file in listdir(temp_path):

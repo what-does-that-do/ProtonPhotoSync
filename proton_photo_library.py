@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="[%(asctime)s] [%(levelname)s] - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
@@ -102,6 +102,12 @@ class ProtonPhotoLibrary:
             if "upload succeeded" in line.lower().strip():
                 uuid = line.split("INFO [upload] revision ")[1].split(":")[0]
                 uuid = uuid[:45]
+            if "[photos-timeline] duplicate photo found:" in line.lower().strip():
+                uuid = line.split(": ")[-1]
+                uuid = uuid[:45]
+                logging.warning("Duplicate photo on Proton Drive. Not added to Proton. Proton version: %s", uuid)
+                         
+                return uuid
         
         process.wait()
         

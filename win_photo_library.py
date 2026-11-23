@@ -25,6 +25,7 @@ class WinPhotoLibrary:
         self.local_map = os.path.join(self.path, "local_map.json")
         self.photos_path = os.path.join(self.path, "Photos")
         self.uuids: list[str] = []
+        self.filenames: list[str] = []
         self.export_path = export_path
         os.makedirs(self.photos_path, exist_ok=True)
 
@@ -176,3 +177,6 @@ class WinPhotoLibrary:
 
     def format_to_uuid_list(self, timeline: list[dict[str, str]]) -> list[str]:
         return [photo["uuid"] for photo in timeline]
+
+    def format_to_filename_list(self, timeline: list[dict[str, str]]) -> list[str]:
+        return [photo["filename"] for photo in timeline]

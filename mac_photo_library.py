@@ -5,7 +5,7 @@ import json
 import logging
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="[%(asctime)s] [%(levelname)s] - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
@@ -14,6 +14,7 @@ class MacPhotoLibrary:
     def __init__(self, path: str, export_path: str):
         self.path = path
         self.uuids = []
+        self.filenames = []
         self.export_path = export_path
         # get library file path in directory
         self.library = os.path.join(self.path, [file for file in os.listdir(path) if re.search("\.photoslibrary$", file)][0])
@@ -41,6 +42,7 @@ class MacPhotoLibrary:
 
         l = json.loads(result.stdout)
         self.uuids = self.format_to_uuid_list(l)
+        self.filenames = self.format_to_filename_list(l)
         return l
 
     def add_photo(self, path: str, return_uuid: bool = True) -> str:
@@ -87,3 +89,11 @@ class MacPhotoLibrary:
             uuids.append(photo["uuid"])
 
         return uuids
+
+    def format_to_filename_list(self, timeline):
+        filenames = []
+
+        for photo in timeline:
+            filenames.append(photo["original_filename"])
+
+        return filenames
